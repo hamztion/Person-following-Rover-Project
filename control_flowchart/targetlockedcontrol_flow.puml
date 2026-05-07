@@ -1,0 +1,117 @@
+@startuml
+title Figure 3-3: Main Software Control Flow of the Person-Following Rover
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #222222
+skinparam ArrowThickness 1.4
+
+skinparam activity {
+  BackgroundColor #EAF3FF
+  BorderColor #2D5FA8
+  FontColor #111111
+  RoundCorner 15
+}
+
+skinparam diamond {
+  BackgroundColor #FFF8E8
+  BorderColor #C77A00
+  FontColor #111111
+}
+
+start
+
+:Initialize system;
+:Start camera, detector, tracker,\nserial communication, and dashboard;
+
+repeat
+
+  :Capture latest frame;
+  :Detect people and update tracks;
+  :Check hand gestures;
+
+  if (Manual override active?) then (Yes)
+    :Get dashboard manual command;
+    :Send manual command to Arduino;
+
+  else (No)
+
+    if (Target locked?) then (No)
+
+      if (Lock gesture detected?) then (Yes)
+        :Select target person;
+        :Set state = LOCKED;
+        :Send LOCKED indicator to Arduino;
+      else (No)
+        :Set state = FREE;
+        :Send FREE indicator to Arduino;
+        :Send STOP;
+      endif
+
+    else (Yes)
+
+      if (Unlock gesture detected?) then (Yes)
+        :Clear locked target;
+        :Set state = FREE;
+        :Send UNLOCK indicator to Arduino;
+        :Send STOP;
+
+      else (No)
+
+        if (Locked target visible?) then (Yes)
+
+          if (Target too close?) then (Yes)
+            :Send STOP;
+
+            if (Target centered?) then (Yes)
+              :Keep rover stopped;
+            else (No)
+              :Compute rotation direction\nand speed;
+              :Send ROTATE command;
+            endif
+
+          else (No)
+            :Compute forward / rotation decision;
+            :Send appropriate command;
+          endif
+
+        else (No)
+          :Set state = LOST;
+          :Send LOST indicator to Arduino;
+          :Send STOP;
+
+          if (Target reacquired within 5 s?) then (Yes)
+            :Set state = LOCKED;
+            :Send LOCKED indicator to Arduino;
+          else (No)
+            :Read left and right\nultrasonic sensors;
+            :Strafe toward side with\nsmaller distance reading;
+
+            if (Lost time >= 15 s?) then (Yes)
+              :Clear locked target;
+              :Set state = FREE;
+              :Send FREE indicator to Arduino;
+              :Send STOP;
+            else (No)
+              :Continue LOST recovery;
+            endif
+
+          endif
+
+        endif
+
+      endif
+
+    endif
+
+  endif
+
+  :Update indicators, telemetry,\nand video stream;
+
+repeat while (System running?) is (Yes)
+
+stop
+
+@enduml
