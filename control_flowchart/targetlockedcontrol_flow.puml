@@ -29,14 +29,15 @@ start
 repeat
 
   :Capture latest frame;
-  :Detect people and update tracks;
-  :Check hand gestures;
 
   if (Manual override active?) then (Yes)
     :Get dashboard manual command;
     :Send manual command to Arduino;
 
   else (No)
+
+    :Detect people and update tracks;
+    :Check hand gestures;
 
     if (Target locked?) then (No)
 
@@ -53,9 +54,11 @@ repeat
     else (Yes)
 
       if (Unlock gesture detected?) then (Yes)
+        :Set state = UNLOCK;
+        :Send UNLOCK indicator to Arduino;
         :Clear locked target;
         :Set state = FREE;
-        :Send UNLOCK indicator to Arduino;
+        :Send FREE indicator to Arduino;
         :Send STOP;
 
       else (No)
